@@ -60,6 +60,7 @@ import com.alibaba.nacos.plugin.auth.constant.ActionTypes;
 import com.alibaba.nacos.plugin.auth.constant.SignType;
 import com.alibaba.nacos.plugin.encryption.handler.EncryptionHandler;
 import com.alibaba.nacos.sys.utils.InetUtils;
+import net.poweroak.framework.nacos.ConfigSyncDistributionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -195,7 +196,15 @@ public class ConfigController {
     
         String encryptedDataKey = pair.getFirst();
        
-        return configOperationService.publishConfig(configForm, configRequestInfo, encryptedDataKey);
+        //return configOperationService.publishConfig(configForm, configRequestInfo, encryptedDataKey);
+        Boolean result = configOperationService.publishConfig(configForm, configRequestInfo, encryptedDataKey);
+        if (result) {
+            // 跨数据中心发布配置
+            ConfigSyncDistributionService.INSTANCE().crossRegionSyncDistribution(tenant, group, dataId, content, tag, appName,
+                    srcUser, configTags, desc, use, effect, type, schema);
+        }
+
+        return result;
     }
     
     /**
@@ -275,7 +284,13 @@ public class ConfigController {
         String clientIp = RequestUtil.getRemoteIp(request);
         String srcUser = RequestUtil.getSrcUserName(request);
         
-        return configOperationService.deleteConfig(dataId, group, tenant, tag, clientIp, srcUser);
+        // return configOperationService.deleteConfig(dataId, group, tenant, tag, clientIp, srcUser);
+        Boolean result = configOperationService.deleteConfig(dataId, group, tenant, tag, clientIp, srcUser);
+        if (result) {
+            ConfigSyncDistributionService.INSTANCE().crossRegionSyncDelete(tenant, group, dataId, tag);
+        }
+
+        return result;
     }
     
     /**
